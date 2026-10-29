@@ -1,0 +1,837 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f6f7fb">
+<title>Personal Finance Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg:#f6f7fb; --card:#fff; --text:#20243a;
+  --muted:#858ba0; --line:#eceef4; --primary:#6257e8;
+  --green:#14866d; --red:#d94b62; --radius:18px;
+}
+* { box-sizing:border-box }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;
+}
+button,input,select { font:inherit }
+button { cursor:pointer }
+button:disabled { opacity:.5; cursor:wait }
+.app { max-width:1180px; margin:auto; padding:26px 22px 50px }
+header {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; margin-bottom:28px;
+}
+.brand { display:flex; align-items:center; gap:12px }
+.logo {
+  width:46px;height:46px;border-radius:15px;background:#e8e5ff;
+  color:var(--primary);display:grid;place-items:center;font-size:24px;
+}
+h1 { font-size:24px; margin:0; letter-spacing:-.7px }
+.subtitle { color:var(--muted); font-size:13px }
+.month-control {
+  display:flex;align-items:center;gap:8px;background:white;
+  border:1px solid var(--line);padding:7px;border-radius:13px;
+}
+.month-control button,.icon-btn {
+  border:0;background:transparent;padding:7px 10px;border-radius:8px;
+  color:var(--text);
+}
+.month-control button:hover,.icon-btn:hover { background:#f0efff }
+.month-control input { border:0;background:transparent;color:var(--text);outline:0 }
+.section-head {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin:28px 0 14px;
+}
+h2 { font-size:18px;margin:0;letter-spacing:-.3px }
+h3 { font-size:15px;margin:0 }
+.muted { color:var(--muted);font-size:13px }
+.grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px }
+.tile {
+  text-align:left;position:relative;min-width:0;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:20px;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+.tile:hover {
+  transform:translateY(-2px);border-color:#c9c4ff;
+  box-shadow:0 8px 25px #20243a0a;
+}
+.tile-top { display:flex;align-items:center;gap:10px;margin-bottom:18px }
+.tile-icon {
+  display:grid;place-items:center;width:40px;height:40px;
+  border-radius:13px;background:#f0efff;font-size:20px;flex-shrink:0;
+}
+.tile-name { font-weight:650;overflow-wrap:anywhere }
+.amount { font-size:25px;font-weight:750;letter-spacing:-.8px }
+.tile-foot { margin-top:9px;display:flex;justify-content:space-between;gap:8px }
+.trend-hint { font-size:12px;color:var(--primary) }
+.change { font-size:12px;color:var(--muted) }
+.change.up { color:var(--red) }
+.change.down { color:var(--green) }
+.panel {
+  background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:22px;min-width:0;
+}
+.overview-grid {
+  display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+  gap:16px;
+}
+.chart-wrap { height:300px;position:relative }
+.legend-list { margin-top:16px;display:grid;gap:9px }
+.legend-row { display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px }
+.legend-label { display:flex;align-items:center;gap:8px;min-width:0 }
+.dot { width:10px;height:10px;border-radius:4px;flex-shrink:0 }
+.legend-label span:last-child { overflow-wrap:anywhere }
+.empty { color:var(--muted);text-align:center;padding:36px 12px }
+.secondary-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px }
+.secondary-tile {
+  display:flex;align-items:center;gap:14px;background:white;
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;text-align:left;min-width:0;
+}
+.secondary-tile .amount { font-size:21px }
+.secondary-tile .tile-icon { background:#e5f5ed }
+.secondary-content { flex:1;min-width:0 }
+.secondary-content .tile-name { margin-bottom:5px }
+.actions { display:flex;gap:10px;flex-wrap:wrap }
+.btn {
+  border:0;border-radius:11px;padding:11px 15px;
+  background:var(--primary);color:white;font-weight:650;
+}
+.btn.secondary { background:white;color:var(--text);border:1px solid var(--line) }
+.btn.small { padding:8px 11px;font-size:13px }
+.transactions { display:grid;gap:0 }
+.transaction {
+  display:flex;align-items:center;gap:12px;padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.transaction:last-child { border-bottom:0 }
+.tx-icon {
+  width:39px;height:39px;display:grid;place-items:center;
+  border-radius:12px;background:#f3f3fa;flex-shrink:0;
+}
+.tx-info { flex:1;min-width:0 }
+.tx-description { font-weight:600;overflow-wrap:anywhere }
+.tx-meta { font-size:12px;color:var(--muted) }
+.tx-amount { font-weight:700;white-space:nowrap }
+.status { margin:12px 0;color:var(--muted);font-size:13px }
+.status.error { color:var(--red) }
+.hidden { display:none!important }
+footer { margin-top:28px;color:var(--muted);font-size:12px;text-align:center }
+.overlay {
+  position:fixed;inset:0;background:#15172b70;z-index:10;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.modal {
+  background:white;border-radius:22px;width:min(680px,100%);
+  max-height:90vh;overflow:auto;padding:24px;
+  box-shadow:0 24px 80px #11182730;
+}
+.modal-head {
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;margin-bottom:18px;
+}
+.modal-title { font-size:21px;font-weight:750 }
+.modal .chart-wrap { height:290px;margin:15px 0 }
+.month-table { width:100%;border-collapse:collapse;font-size:14px }
+.month-table th,.month-table td {
+  text-align:left;padding:12px 7px;border-bottom:1px solid var(--line);
+}
+.month-table th { color:var(--muted);font-size:12px;font-weight:600 }
+.month-table td:last-child,.month-table th:last-child { text-align:right }
+.form-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px }
+.field { display:grid;gap:6px;min-width:0 }
+.field.full { grid-column:1/-1 }
+.field label { font-size:13px;font-weight:650 }
+.field input,.field select {
+  width:100%;min-width:0;border:1px solid #dedfea;border-radius:10px;
+  padding:11px;background:white;color:var(--text);
+}
+.form-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:20px }
+#toast {
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  z-index:30;background:#20243a;color:white;padding:12px 18px;
+  border-radius:12px;box-shadow:0 6px 24px #0002;max-width:90%;
+}
+@media(max-width:760px) {
+  .app { padding:18px 14px 35px }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr));gap:10px }
+  .tile { padding:15px }
+  .amount { font-size:22px }
+  .tile-top { align-items:flex-start;gap:8px }
+  .tile-icon { width:35px;height:35px;font-size:18px }
+  .overview-grid { grid-template-columns:1fr }
+  .secondary-grid { grid-template-columns:1fr }
+  .panel { padding:17px }
+  .chart-wrap { height:270px }
+}
+@media(max-width:390px) {
+  .grid { grid-template-columns:1fr }
+  .month-control { width:100%;justify-content:space-between }
+  .month-control input { flex:1;min-width:0 }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">₹</div>
+      <div>
+        <h1>Personal Finance</h1>
+        <div class="subtitle">Understand where your money goes</div>
+      </div>
+    </div>
+    <div class="month-control">
+      <button id="prevMonth" aria-label="Previous month">←</button>
+      <input id="monthPicker" type="month" aria-label="Select month">
+      <button id="nextMonth" aria-label="Next month">→</button>
+    </div>
+  </header>
+
+  <div id="status" class="status">Connect your Apps Script backend to load data.</div>
+
+  <div class="section-head">
+    <div>
+      <h2>Everyday spending</h2>
+      <div class="muted">Select a category to explore its six-month trend</div>
+    </div>
+    <button class="btn small" id="addExpenseBtn">＋ Add expense</button>
+  </div>
+  <div id="spendingTiles" class="grid">
+    <div class="panel">Your category tiles will appear here.</div>
+  </div>
+
+  <div class="section-head">
+    <h2>Spending breakdown</h2>
+    <span class="muted">Selected month</span>
+  </div>
+  <div class="overview-grid">
+    <div class="panel">
+      <h3>Where you spent</h3>
+      <div class="muted" id="pieSubtitle">Category share of everyday spending</div>
+      <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      <div id="pieLegend" class="legend-list"></div>
+    </div>
+    <div class="panel">
+      <h3>Recent expenses</h3>
+      <div class="muted">Latest entries for the selected month</div>
+      <div id="recentTransactions" class="transactions"></div>
+      <div style="margin-top:15px">
+        <button id="historyBtn" class="btn secondary small">View transaction history</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h2>Savings &amp; Investments</h2>
+      <div class="muted">Tracked separately from everyday spending</div>
+    </div>
+  </div>
+  <div id="separateTiles" class="secondary-grid"></div>
+
+  <footer>Personal Finance Manager · Data stored in your Google Sheet</footer>
+</div>
+
+<div id="trendOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="trendTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div id="trendTitle" class="modal-title">Category trend</div>
+        <div id="trendSubtitle" class="muted">Six calendar months</div>
+      </div>
+      <button class="icon-btn" id="closeTrend" aria-label="Close">✕</button>
+    </div>
+    <div id="trendTotal" class="amount">₹0</div>
+    <div class="muted">Spending in the selected month</div>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    <table class="month-table">
+      <thead><tr><th>Month</th><th>Amount</th></tr></thead>
+      <tbody id="trendTable"></tbody>
+    </table>
+    <div class="form-actions">
+      <button id="closeTrendBottom" class="btn secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="expenseOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="expenseTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div id="expenseTitle" class="modal-title">Add expense</div>
+        <div class="muted">Save a new entry to your Google Sheet</div>
+      </div>
+      <button class="icon-btn" id="closeExpense" aria-label="Close">✕</button>
+    </div>
+    <form id="expenseForm">
+      <div class="form-grid">
+        <div class="field">
+          <label for="expenseDate">Date</label>
+          <input id="expenseDate" name="date" type="date" required>
+        </div>
+        <div class="field">
+          <label for="expenseAmount">Amount (₹)</label>
+          <input id="expenseAmount" name="amount" type="number" min="0.01" step="0.01" required>
+        </div>
+        <div class="field full">
+          <label for="expenseDescription">Description</label>
+          <input id="expenseDescription" name="description" maxlength="500" required placeholder="What was this expense for?">
+        </div>
+        <div class="field full">
+          <label for="expenseCategory">Category</label>
+          <select id="expenseCategory" name="category" required></select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" id="cancelExpense" class="btn secondary">Cancel</button>
+        <button type="submit" id="saveExpense" class="btn">Save expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="historyOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div id="historyTitle" class="modal-title">Transaction history</div>
+        <div class="muted">Search entries in your spreadsheet</div>
+      </div>
+      <button class="icon-btn" id="closeHistory" aria-label="Close">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="historySearch">Search description/category</label>
+        <input id="historySearch" placeholder="Search">
+      </div>
+      <div class="field">
+        <label for="historyCategory">Category</label>
+        <select id="historyCategory"><option value="">All categories</option></select>
+      </div>
+    </div>
+    <div id="historyStatus" class="status"></div>
+    <div id="historyResults" class="transactions"></div>
+    <div class="form-actions">
+      <button id="closeHistoryBottom" class="btn secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="hidden" role="status"></div>
+
+<script>
+'use strict';
+
+/*
+ * Paste your deployed Apps Script Web App URL here.
+ * It should end in /exec.
+ */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyEG7Kc46c6E4-uIPLcH2k-YBMv5V_4t6b2rnqccHDb7yhPntdW6G8jMTsNrbx0jcfx/exec';
+
+const $ = id => document.getElementById(id);
+const state = {
+  month: localMonth(),
+  categories: [],
+  spending: [],
+  separate: [],
+  pieChart: null,
+  trendChart: null,
+  trendCategory: null,
+  trendMonths: [],
+  toastTimer: null
+};
+
+const ICONS = {
+  'Food':'🍽️',
+  'Home Contribution':'🏠',
+  'Shopping':'🛍️',
+  'Vehicle Maintenance':'🔧',
+  'Gift':'🎁',
+  'Misc':'📦',
+  'Supplements':'💪',
+  'Investment':'📈',
+  'Travel':'✈️',
+  'Fuel':'⛽',
+  'Savings':'🐷',
+  'Recharge/Bill Payment':'📱',
+  'Health':'❤️'
+};
+
+const COLORS = [
+  '#6257e8','#ef8b57','#26a887','#e5b94e','#df6381',
+  '#5799d9','#9a72d4','#56b6c2','#a3a8b7','#de8cb4',
+  '#7ba66a','#bf9a78','#7185d0'
+];
+
+function localMonth() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit'
+  }).formatToParts(new Date());
+  return parts.find(p => p.type === 'year').value + '-' +
+    parts.find(p => p.type === 'month').value;
+}
+
+function localDate() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone:'Asia/Kolkata', year:'numeric', month:'2-digit', day:'2-digit'
+  }).formatToParts(new Date());
+  return parts.find(p => p.type === 'year').value + '-' +
+    parts.find(p => p.type === 'month').value + '-' +
+    parts.find(p => p.type === 'day').value;
+}
+
+function money(value) {
+  return new Intl.NumberFormat('en-IN', {
+    style:'currency', currency:'INR', maximumFractionDigits:2
+  }).format(Number(value) || 0);
+}
+
+function monthLabel(month) {
+  const [y,m] = month.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-IN', {
+    month:'short', year:'numeric', timeZone:'Asia/Kolkata'
+  }).format(new Date(Date.UTC(y,m-1,15,12)));
+}
+
+function dateLabel(date) {
+  if (!date) return '';
+  const [y,m,d] = date.split('-').map(Number);
+  if (!y || !m || !d) return date;
+  return new Intl.DateTimeFormat('en-IN', {
+    day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'
+  }).format(new Date(Date.UTC(y,m-1,d,12)));
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;',
+    '"':'&quot;',"'":'&#39;'
+  })[ch]);
+}
+
+function iconFor(category) {
+  return ICONS[category] || '💳';
+}
+
+function showStatus(message, error=false) {
+  $('status').textContent = message;
+  $('status').classList.toggle('error', error);
+}
+
+function toast(message) {
+  $('toast').textContent = message;
+  $('toast').classList.remove('hidden');
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => {
+    $('toast').classList.add('hidden');
+  }, 3200);
+}
+
+function assertConfigured() {
+  if (!API_URL.startsWith('https://script.google.com/macros/s/') ||
+      !API_URL.endsWith('/exec')) {
+    throw new Error('Set API_URL to your deployed Apps Script /exec URL first.');
+  }
+}
+
+async function apiGet(action, params={}) {
+  assertConfigured();
+  const query = new URLSearchParams({action, ...params});
+  const response = await fetch(API_URL + '?' + query.toString(), {
+    method:'GET',
+    redirect:'follow'
+  });
+  if (!response.ok) throw new Error('Backend HTTP error: ' + response.status);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error || 'Backend request failed.');
+  return result.data;
+}
+
+async function apiPost(action, body={}) {
+  assertConfigured();
+  /*
+   * text/plain avoids the browser's JSON content-type preflight.
+   * This is a compatibility measure, not authentication.
+   */
+  const response = await fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({action, ...body}),
+    redirect:'follow'
+  });
+  if (!response.ok) throw new Error('Backend HTTP error: ' + response.status);
+  const result = await response.json();
+  if (!result.success) throw new Error(result.error || 'Could not save expense.');
+  return result.data;
+}
+
+async function loadDashboard() {
+  state.month = $('monthPicker').value || localMonth();
+  showStatus('Loading your financial data…');
+  $('spendingTiles').innerHTML = '<div class="panel">Loading categories…</div>';
+  $('separateTiles').innerHTML = '';
+
+  try {
+    const [dashboard, categoryData] = await Promise.all([
+      apiGet('dashboard', {month:state.month}),
+      apiGet('categories')
+    ]);
+
+    state.categories = categoryData.all || [];
+    state.spending = dashboard.spending || [];
+    state.separate = dashboard.savingsAndInvestments || [];
+
+    renderTiles();
+    renderPie(dashboard.pieChart || []);
+    renderRecent(dashboard.recentTransactions || []);
+    renderSeparateTiles();
+    populateCategorySelects();
+
+    showStatus('Showing ' + monthLabel(state.month) + '.');
+  } catch (err) {
+    showStatus(err.message, true);
+    $('spendingTiles').innerHTML =
+      '<div class="panel empty">Could not load the dashboard.<br>' +
+      escapeHtml(err.message) + '</div>';
+    $('separateTiles').innerHTML =
+      '<div class="panel empty">Backend data is unavailable.</div>';
+  }
+}
+
+function renderTiles() {
+  const root = $('spendingTiles');
+
+  if (!state.spending.length) {
+    root.innerHTML = '<div class="panel empty">No everyday spending recorded for this month.</div>';
+    return;
+  }
+
+  root.innerHTML = state.spending.map((item, index) => `
+    <button class="tile" data-trend="${escapeHtml(item.category)}"
+      aria-label="View six-month trend for ${escapeHtml(item.category)}">
+      <div class="tile-top">
+        <div class="tile-icon">${iconFor(item.category)}</div>
+        <div class="tile-name">${escapeHtml(item.category)}</div>
+      </div>
+      <div class="amount">${money(item.amount)}</div>
+      <div class="tile-foot">
+        <span class="trend-hint">View 6-month trend ↗</span>
+      </div>
+    </button>
+  `).join('');
+
+  root.querySelectorAll('[data-trend]').forEach(button => {
+    button.addEventListener('click', () => openTrend(button.dataset.trend));
+  });
+}
+
+function renderSeparateTiles() {
+  const root = $('separateTiles');
+
+  if (!state.separate.length) {
+    root.innerHTML = '<div class="panel empty">No savings or investment entries for this month.</div>';
+    return;
+  }
+
+  root.innerHTML = state.separate.map(item => `
+    <button class="secondary-tile" data-trend="${escapeHtml(item.category)}">
+      <div class="tile-icon">${iconFor(item.category)}</div>
+      <div class="secondary-content">
+        <div class="tile-name">${escapeHtml(item.category)}</div>
+        <div class="amount">${money(item.amount)}</div>
+        <div class="trend-hint">View 6-month trend ↗</div>
+      </div>
+    </button>
+  `).join('');
+
+  root.querySelectorAll('[data-trend]').forEach(button => {
+    button.addEventListener('click', () => openTrend(button.dataset.trend));
+  });
+}
+
+function renderPie(items) {
+  if (state.pieChart) state.pieChart.destroy();
+
+  const labels = items.map(item => item.category);
+  const values = items.map(item => Number(item.amount) || 0);
+
+  state.pieChart = new Chart($('pieChart'), {
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{
+        data:values,
+        backgroundColor:items.map((_,i) => COLORS[i % COLORS.length]),
+        borderColor:'#ffffff',
+        borderWidth:3,
+        hoverOffset:7
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      cutout:'58%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:context => context.label + ': ' + money(context.raw)
+          }
+        }
+      }
+    }
+  });
+
+  $('pieLegend').innerHTML = items.length
+    ? items.map((item,i) => `
+      <div class="legend-row">
+        <div class="legend-label">
+          <span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>
+          <span>${escapeHtml(item.category)}</span>
+        </div>
+        <strong>${money(item.amount)}</strong>
+      </div>
+    `).join('')
+    : '<div class="empty">No spending to display.</div>';
+}
+
+function renderRecent(rows) {
+  const root = $('recentTransactions');
+
+  if (!rows.length) {
+    root.innerHTML = '<div class="empty">No expenses recorded for this month.</div>';
+    return;
+  }
+
+  root.innerHTML = rows.slice(0,8).map(row => `
+    <div class="transaction">
+      <div class="tx-icon">${iconFor(row.category)}</div>
+      <div class="tx-info">
+        <div class="tx-description">${escapeHtml(row.description || row.category)}</div>
+        <div class="tx-meta">${escapeHtml(row.category)} · ${dateLabel(row.date)}</div>
+      </div>
+      <div class="tx-amount">${money(row.amount)}</div>
+    </div>
+  `).join('');
+}
+
+async function openTrend(category) {
+  state.trendCategory = category;
+  $('trendTitle').textContent = category;
+  $('trendSubtitle').textContent = 'Six calendar months ending ' + monthLabel(state.month);
+  $('trendTotal').textContent = '…';
+  $('trendTable').innerHTML = '<tr><td colspan="2">Loading…</td></tr>';
+  $('trendOverlay').classList.remove('hidden');
+
+  try {
+    const data = await apiGet('trend', {
+      category,
+      month:state.month
+    });
+
+    state.trendMonths = data.months || [];
+    const selected = state.trendMonths.find(m => m.month === state.month);
+    $('trendTotal').textContent = money(selected ? selected.amount : 0);
+
+    if (state.trendChart) state.trendChart.destroy();
+
+    state.trendChart = new Chart($('trendChart'), {
+      type:'line',
+      data:{
+        labels:state.trendMonths.map(m => monthLabel(m.month)),
+        datasets:[{
+          label:category,
+          data:state.trendMonths.map(m => Number(m.amount) || 0),
+          borderColor:'#6257e8',
+          backgroundColor:'rgba(98,87,232,.12)',
+          fill:true,
+          tension:.3,
+          pointRadius:4,
+          pointHoverRadius:6
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{intersect:false,mode:'index'},
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx => money(ctx.raw)}}
+        },
+        scales:{
+          y:{
+            beginAtZero:true,
+            ticks:{callback:value => '₹' + Number(value).toLocaleString('en-IN')}
+          }
+        }
+      }
+    });
+
+    $('trendTable').innerHTML = state.trendMonths.map(m => `
+      <tr><td>${escapeHtml(monthLabel(m.month))}</td>
+      <td>${money(m.amount)}</td></tr>
+    `).join('');
+  } catch (err) {
+    $('trendTable').innerHTML =
+      '<tr><td colspan="2">' + escapeHtml(err.message) + '</td></tr>';
+    toast(err.message);
+  }
+}
+
+function closeTrend() {
+  $('trendOverlay').classList.add('hidden');
+}
+
+function populateCategorySelects() {
+  const options = state.categories.map(category =>
+    `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`
+  ).join('');
+
+  $('expenseCategory').innerHTML = options;
+  $('historyCategory').innerHTML =
+    '<option value="">All categories</option>' + options;
+}
+
+function openExpense() {
+  $('expenseDate').value = localDate();
+  $('expenseAmount').value = '';
+  $('expenseDescription').value = '';
+  $('expenseOverlay').classList.remove('hidden');
+}
+
+function closeExpense() {
+  $('expenseOverlay').classList.add('hidden');
+}
+
+async function saveExpense(event) {
+  event.preventDefault();
+  const button = $('saveExpense');
+  button.disabled = true;
+  button.textContent = 'Saving…';
+
+  try {
+    const payload = {
+      date:$('expenseDate').value,
+      description:$('expenseDescription').value.trim(),
+      category:$('expenseCategory').value,
+      amount:Number($('expenseAmount').value)
+    };
+
+    await apiPost('addExpense', payload);
+    closeExpense();
+    toast('Expense saved.');
+    await loadDashboard();
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Save expense';
+  }
+}
+
+async function loadHistory() {
+  $('historyStatus').textContent = 'Loading transactions…';
+  $('historyResults').innerHTML = '';
+
+  try {
+    const data = await apiGet('history', {
+      month:state.month,
+      category:$('historyCategory').value,
+      search:$('historySearch').value.trim(),
+      limit:500
+    });
+
+    $('historyStatus').textContent =
+      data.count + ' matching transaction(s) in ' + monthLabel(state.month) + '.';
+
+    $('historyResults').innerHTML = (data.transactions || []).map(row => `
+      <div class="transaction">
+        <div class="tx-icon">${iconFor(row.category)}</div>
+        <div class="tx-info">
+          <div class="tx-description">${escapeHtml(row.description || row.category)}</div>
+          <div class="tx-meta">${escapeHtml(row.category)} · ${dateLabel(row.date)}</div>
+        </div>
+        <div class="tx-amount">${money(row.amount)}</div>
+      </div>
+    `).join('') || '<div class="empty">No matching transactions.</div>';
+  } catch (err) {
+    $('historyStatus').textContent = err.message;
+    $('historyStatus').classList.add('error');
+  }
+}
+
+function openHistory() {
+  $('historySearch').value = '';
+  $('historyCategory').value = '';
+  $('historyOverlay').classList.remove('hidden');
+  loadHistory();
+}
+
+function closeHistory() {
+  $('historyOverlay').classList.add('hidden');
+}
+
+$('monthPicker').value = state.month;
+$('monthPicker').addEventListener('change', loadDashboard);
+
+$('prevMonth').addEventListener('click', () => {
+  const [y,m] = state.month.split('-').map(Number);
+  const d = new Date(y,m-2,1);
+  state.month = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  $('monthPicker').value = state.month;
+  loadDashboard();
+});
+
+$('nextMonth').addEventListener('click', () => {
+  const [y,m] = state.month.split('-').map(Number);
+  const d = new Date(y,m,1);
+  state.month = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  $('monthPicker').value = state.month;
+  loadDashboard();
+});
+
+$('addExpenseBtn').addEventListener('click', openExpense);
+$('closeExpense').addEventListener('click', closeExpense);
+$('cancelExpense').addEventListener('click', closeExpense);
+$('expenseForm').addEventListener('submit', saveExpense);
+
+$('closeTrend').addEventListener('click', closeTrend);
+$('closeTrendBottom').addEventListener('click', closeTrend);
+
+$('historyBtn').addEventListener('click', openHistory);
+$('closeHistory').addEventListener('click', closeHistory);
+$('closeHistoryBottom').addEventListener('click', closeHistory);
+
+let historySearchTimer;
+$('historySearch').addEventListener('input', () => {
+  clearTimeout(historySearchTimer);
+  historySearchTimer = setTimeout(loadHistory, 300);
+});
+$('historyCategory').addEventListener('change', loadHistory);
+
+['trendOverlay','expenseOverlay','historyOverlay'].forEach(id => {
+  $(id).addEventListener('click', event => {
+    if (event.target !== $(id)) return;
+    $(id).classList.add('hidden');
+  });
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    closeTrend();
+    closeExpense();
+    closeHistory();
+  }
+});
+
+loadDashboard();
+</script>
+</body>
+</html>
